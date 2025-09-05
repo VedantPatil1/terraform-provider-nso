@@ -168,6 +168,21 @@ func (r *DeviceResource) Create(ctx context.Context, req resource.CreateRequest,
 
 	plan.Id = types.StringValue(plan.getPath())
 
+	// Fetch ssh host keys for device.
+	_, err := r.clients[plan.Instance.ValueString()].PostData(plan.getPath()+"/ssh/fetch-host-keys", "")
+	if err != nil {
+		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Failed to fetch ssh host keys (POST), got error: %s", err))
+		return
+	}
+
+	// Sync device
+	_, err = r.clients[plan.Instance.ValueString()].PostData(plan.getPath()+"/sync-from", "")
+
+	if err != nil {
+		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Failed to Sync Device (POST), got error: %s", err))
+		return
+	}
+
 	tflog.Debug(ctx, fmt.Sprintf("%s: Create finished successfully", plan.getPath()))
 
 	diags = resp.State.Set(ctx, &plan)
